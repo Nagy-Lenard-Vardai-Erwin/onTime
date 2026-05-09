@@ -14,6 +14,7 @@ import Markers from "../markers/Markers";
 import { useThemeContext } from "../contexts/ThemeContextProvider";
 import type { BaseCoordinates } from "@/helpers/baseCoordinates";
 import type { RouteData } from "@/entities/route";
+import axios from "axios";
 
 export const MapView = {
   VIEW: "view",
@@ -33,14 +34,42 @@ const MapComponent = ({ markerList, mode, routeData }: MapComponentProps) => {
     [23.439274, 47.617155], // SW [lng, lat]
     [23.729459, 47.686301], // NE [lng, lat]
   ];
+  const [route, setRoute] = useState<{ long: number, lat: number }[]>([])
+
+  async function test() {
+    if (coord.length > 1) {
+      const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_KEY;
+      const response = await axios.get(
+        `https://api.geoapify.com/v1/routing?waypoints=${coord[0].latitude}%2C${coord[0].longitude}%7C${coord[1].latitude}%2C${coord[1].longitude}&mode=drive&apiKey=${GEOAPIFY_KEY}`
+      )
+
+      const waypoints = response.data.properties.waypoints // start and end points
+      const routes = response.data.features[0].geometry.coordinates // points between waypoints
+
+      setRoute(
+        routes[0].map((item: number[]) => ({
+          long: item[0],
+          lat: item[1]
+        }))
+      )
+    }
+
+  }
+
+
 
   const [selectedMarker, setSelectedMarker] = useState<BaseCoordinates[]>([]);
   const { theme } = useThemeContext();
 
   const [markers, setMarkers] = useState<BaseCoordinates[]>(markerList || []);
+  const [coord, setCoord] = useState<BaseCoordinates[]>([]);
+
+  useEffect(() => {
+    test()
+  }, [coord])
 
   const addMarker = (e: MapLayerMouseEvent) => {
-    if (mode !== "edit") return;
+    // if (mode !== "edit") return;
 
     const { lat, lng } = e.lngLat;
 
@@ -50,7 +79,7 @@ const MapComponent = ({ markerList, mode, routeData }: MapComponentProps) => {
       order_index: markers.length,
     };
 
-    setMarkers((prev) => [...prev, newMarker]);
+    setCoord((prev) => [...prev, newMarker]);
   };
 
   const handleMarkerDragEnd = (
@@ -91,6 +120,48 @@ const MapComponent = ({ markerList, mode, routeData }: MapComponentProps) => {
   };
 
 
+  function renderRoute(route: { long: number, lat: number }[]) {
+
+
+
+    // return
+    if (route.length < 1) return
+
+    console.log(route, "past")
+    const geojson: FeatureCollection<LineString> = {
+      type: "FeatureCollection",
+      features:
+        [
+          {
+            type: "Feature",
+            geometry: {
+              type: "LineString",
+              coordinates: route.map((m) => [
+                Number(m.long),
+                Number(m.lat),
+              ]),
+            },
+            properties: {},
+          },
+        ]
+    };
+
+    return (
+      <Source key={1} id={"1"} type="geojson" data={geojson}>
+        <Layer
+          id={"2"}
+          type="line"
+          paint={{
+            "line-color": "green",
+            "line-width": 4,
+          }}
+        />
+      </Source>
+    );
+
+  }
+
+
   return (
     <Map
       mapStyle={
@@ -129,13 +200,16 @@ const MapComponent = ({ markerList, mode, routeData }: MapComponentProps) => {
           </Marker>
         ))
       )}
-      <Marker
-        latitude={47.65804539306299}
-        longitude={23.503012814572486}
-        color="red"
-      >
-        <div>test123</div>
-      </Marker>
+      {coord.map((item, i) => {
+        return <Marker
+          key={i}
+          latitude={item.latitude}
+          longitude={item.longitude}
+          color="red">
+
+        </Marker>
+      })}
+      {renderRoute(route)}
       {routeData?.map((item, index: number) => {
         const geojson: FeatureCollection<LineString> = {
           type: "FeatureCollection",
