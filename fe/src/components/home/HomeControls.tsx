@@ -38,8 +38,6 @@ const HomeControls = ({
   const switchSource = (source: DataSource) => {
     if (source === dataSource) return;
 
-    // Never mix simulated and real positions: leaving simulation mode kills
-    // the simulator if it is still running.
     if (source === "live" && running) {
       stopSimulation.mutate(undefined, { onSuccess: () => onStopped?.() });
     }

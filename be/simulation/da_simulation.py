@@ -27,7 +27,6 @@ def passenger_probability(time):
     else:
         return 0.50
 
-
 db = SessionLocal()
 line_ids = [8, 13, 40, 50, 54]
 
@@ -175,10 +174,6 @@ while any(bus['completed_routes'] < 3 for bus in buses):
                     print(f"Station skipped: {station.name}")
             
         
-    # Multiple coordinates can be generated for a single route point.
-    # When the next point is too far away, the bus moves towards it in
-    # several simulation steps (arrived=False) until the point is reached
-    # (arrived=True).
 
         
         if arrived:

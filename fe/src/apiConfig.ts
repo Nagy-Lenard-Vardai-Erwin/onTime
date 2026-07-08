@@ -1,9 +1,5 @@
 import axios from "axios";
 
-// In dev, API calls go through Vite's proxy (see vite.config.ts) under "/api"
-// so the browser always talks to the same origin it was loaded from. That lets
-// the app run over a phone tunnel / LAN against the deployed backend without
-// tripping its CORS allowlist. Production builds hit VITE_BACKEND_URL directly.
 const baseURL = import.meta.env.DEV ? "/api" : import.meta.env.VITE_BACKEND_URL;
 
 export const axiosInstance = axios.create({

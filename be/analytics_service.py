@@ -20,25 +20,24 @@ import time
 
 import pandas as pd
 
-# Make the analytics package importable (its modules use absolute imports).
 _ANALYTICS_DIR = os.path.join(os.path.dirname(__file__), "analytics")
 if _ANALYTICS_DIR not in sys.path:
     sys.path.append(_ANALYTICS_DIR)
 
-from data_loader import load_bus_locations  # noqa: E402
-from cleaning import clean_data  # noqa: E402
-from route_analysis import (  # noqa: E402
+from data_loader import load_bus_locations
+from cleaning import clean_data
+from route_analysis import (
     trips_per_route,
     buses_per_route,
 )
-from speed_analysis import (  # noqa: E402
+from speed_analysis import (
     speed_statistics,
     speed_by_route,
     speed_by_hour,
     speed_by_bus,
 )
-from distance_analysis import calculate_distances  # noqa: E402
-from temporal_analysis import (  # noqa: E402
+from distance_analysis import calculate_distances
+from temporal_analysis import (
     activity_by_hour,
     activity_by_weekday,
     active_buses_by_hour,
@@ -46,15 +45,10 @@ from temporal_analysis import (  # noqa: E402
     speed_by_period,
 )
 
-
-_CACHE_TTL = 600  # seconds
+_CACHE_TTL = 600
 _cache: dict = {"ts": 0.0, "frames": None, "summary": None}
 _lock = threading.Lock()
 
-
-# Human readable labels + the chart type the frontend should render for each
-# metric.  Keeping this here keeps the download filenames and the dashboard in
-# sync from a single source of truth.
 METRICS = {
     "route_usage": "Route usage (records per line)",
     "buses_per_route": "Buses per route",
@@ -80,13 +74,11 @@ _WEEKDAY_ORDER = [
     "Sunday",
 ]
 
-
 def _records(df: pd.DataFrame) -> list:
     """DataFrame -> list[dict] with native JSON types (handles numpy/NaN)."""
     if df is None or df.empty:
         return []
     return json.loads(df.to_json(orient="records"))
-
 
 def _compute_frames(df: pd.DataFrame) -> dict:
     """Compute every dashboard DataFrame from a single cleaned snapshot."""
@@ -102,8 +94,6 @@ def _compute_frames(df: pd.DataFrame) -> dict:
     frames["speed_by_hour"] = speed_by_hour(df)
     frames["speed_by_period"] = speed_by_period(df)
 
-    # Distance is the expensive step (per-row haversine), so compute the
-    # segment distances once and derive both aggregations from it.
     dist = calculate_distances(df)
 
     frames["distance_by_route"] = (
@@ -141,13 +131,11 @@ def _compute_frames(df: pd.DataFrame) -> dict:
 
     frames["active_buses_by_hour"] = active_buses_by_hour(df)
 
-    # Round numeric columns so the API returns tidy values.
     for key, frame in frames.items():
         for col in frame.select_dtypes(include="float").columns:
             frame[col] = frame[col].round(2)
 
     return frames
-
 
 def _compute_summary(df: pd.DataFrame, frames: dict) -> dict:
     """Headline numbers shown in the dashboard cards."""
@@ -202,13 +190,11 @@ def _compute_summary(df: pd.DataFrame, frames: dict) -> dict:
         else None,
     }
 
-
 def _native(value):
     """json default helper: cast numpy scalars to native python."""
     if hasattr(value, "item"):
         return value.item()
     return str(value)
-
 
 def _get_snapshot(force: bool = False) -> dict:
     """Return cached ``{frames, summary}``, recomputing when stale."""
@@ -232,7 +218,6 @@ def _get_snapshot(force: bool = False) -> dict:
         _cache["ts"] = now
         return _cache
 
-
 def get_overview(force: bool = False) -> dict:
     """Full payload consumed by the dashboard: summary + every chart series."""
     snapshot = _get_snapshot(force=force)
@@ -244,7 +229,6 @@ def get_overview(force: bool = False) -> dict:
             key: _records(frames.get(key, pd.DataFrame())) for key in METRICS
         },
     }
-
 
 def get_metric_csv(metric: str) -> str:
     """Return a single metric's data as a CSV string for download."""

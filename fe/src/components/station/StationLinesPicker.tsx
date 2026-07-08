@@ -16,10 +16,6 @@ type StationLinesPickerProps = {
   attachments: LineStation[];
 };
 
-/**
- * Multi-select (checkbox) list of lines a station is attached to.
- * Toggling a line attaches/detaches it on the spot via the junction table.
- */
 const StationLinesPicker = ({
   station,
   lines,

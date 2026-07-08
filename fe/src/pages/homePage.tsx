@@ -22,7 +22,6 @@ const HomePage = () => {
   const [simulationRunning, setSimulationRunning] = useState(false);
   const [dataSource, setDataSource] = useState<DataSource>("live");
 
-  // Stop the simulation if the page is refreshed/closed while it's running.
   const runningRef = useRef(false);
   runningRef.current = simulationRunning;
   useEffect(() => {
@@ -40,8 +39,6 @@ const HomePage = () => {
   const { data: routeResponse } = useRoute({
     line_ids: selectedLineId ? [selectedLineId] : undefined,
   });
-  // In live mode the driver app feeds bus_locations directly, so poll as soon
-  // as a line is selected; in simulation mode only while the simulator runs.
   const shouldPoll =
     dataSource === "live" ? Boolean(selectedLineId) : simulationRunning;
   const { data: liveBuses } = useLiveBuses(
@@ -49,8 +46,6 @@ const HomePage = () => {
     dataSource === "live",
   );
 
-  // Closest bus *approaching* the selected station along the route
-  // (direction-aware on the backend).
   const { data: closestBusData } = useClosestBus(
     selectedLineId,
     targetStation ? Number(targetStation.id) : undefined,
@@ -61,8 +56,6 @@ const HomePage = () => {
 
   const { location, enable, error: locationError } = useUserLocationContext();
 
-  // Geolocation failures (permission blocked, GPS off, timeout) are otherwise
-  // invisible — surface them so it's clear why the dot isn't showing.
   useEffect(() => {
     if (locationError) toast.error(locationError);
   }, [locationError]);
@@ -71,9 +64,7 @@ const HomePage = () => {
     location,
     targetStation ? { lat: targetStation.lat, lon: targetStation.long } : null,
   );
-  // Estimate the walk from the route distance at an average walking pace
-  // (~5 km/h) rather than trusting the routing provider's own duration.
-  const AVG_WALKING_SPEED_MPS = 1.4; // ≈ 5 km/h
+  const AVG_WALKING_SPEED_MPS = 1.4;
   const walkingMinutes =
     walking?.distanceM != null
       ? Math.max(1, Math.round(walking.distanceM / AVG_WALKING_SPEED_MPS / 60))
@@ -81,12 +72,12 @@ const HomePage = () => {
 
   const handleSelectStation = (station: Station) => {
     setTargetStation(station);
-    enable(); // make sure we have a live origin for the walking route
+    enable();
   };
 
   const handleSelectLine = (lineId?: number) => {
     setSelectedLineId(lineId);
-    setTargetStation(null); // the station belongs to the previous line
+    setTargetStation(null);
   };
 
   const formatDistance = (meters: number) =>

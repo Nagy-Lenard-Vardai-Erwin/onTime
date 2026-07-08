@@ -23,9 +23,6 @@ const urls = {
 
 export const getLines = async (): Promise<Line[]> => {
   const data = await request<Line[]>("get", urls.getLines, undefined, true);
-  // A warm backend returns a JSON array; a cold-starting Render instance can
-  // briefly answer 200 with an HTML "spinning up" page. Reject anything that
-  // isn't an array so React Query retries instead of the UI crashing on .map().
   if (!Array.isArray(data)) {
     throw new Error("Unexpected /line response");
   }

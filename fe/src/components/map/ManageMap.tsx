@@ -76,9 +76,6 @@ const ManageMap = () => {
     waypoints: BaseCoordinates[],
   ) => {
     const lineId = Number(id);
-    // Persist exactly what's on screen with sequential order_index (the backend
-    // sorts by it). Every point needs line_id — the GET response omits it, so
-    // set it explicitly here or the POST 422s on edit.
     const routeData = {
       routes: coord.map((p, i) => ({
         lat: p.lat,
@@ -170,71 +167,26 @@ const ManageMap = () => {
     setWaypoints((prev) => [...prev, newMarker]);
   };
 
-  // more optimised geoapify stuff
 
-  // const drawBusRoute = async () => {
-  //   if (waypoints.length < 2) return;
 
-  //   const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_KEY;
 
-  //   let coordonates = "";
 
-  //   if (routeUpdateType === "append") {
-  //     const lastTwo = waypoints.slice(-2);
-  //     coordonates = lastTwo.map((c) => `${c.lat},${c.long}`).join("|");
-  //   } else if (routeUpdateType === "insert" || routeUpdateType === "move") {
-  //     const insertedIndex = waypoints.findIndex(
-  //       (w) => w.order_index === selectedWaypoint?.order_index,
-  //     );
 
-  //     const prev = waypoints[insertedIndex - 1];
-  //     const curr = waypoints[insertedIndex];
-  //     const next = waypoints[insertedIndex + 1];
 
-  //     if (prev && curr && next) {
-  //       coordonates = [
-  //         `${prev.lat},${prev.long}`,
-  //         `${curr.lat},${curr.long}`,
-  //         `${next.lat},${next.long}`,
-  //       ].join("|");
-  //     }
-  //   }
 
-  //   if (!coordonates) return;
 
-  //   const response = await axios.get(
-  //     `https://api.geoapify.com/v1/routing?waypoints=${coordonates}&mode=drive&apiKey=${GEOAPIFY_KEY}`,
-  //   );
 
-  //   const geometry = response.data.features?.[0]?.geometry;
 
-  //   if (!geometry) return;
 
-  //   const coords: [number, number][] = geometry.coordinates.flat();
 
-  //   const newSegment: BaseCoordinates[] = coords.map((r, index) => ({
-  //     lat: r[1],
-  //     long: r[0],
-  //     line_id: Number(id!),
-  //     order_index: coord.length + index,
-  //   }));
 
-  //   if (routeUpdateType === "append") {
-  //     setCoord((prev) => {
-  //       if (prev.length === 0) return newSegment;
 
-  //       return [...prev, ...newSegment.slice(1)];
-  //     });
-  //   } else {
-  //     setCoord(newSegment);
-  //   }
-  // };
 
   const drawBusRoute = async () => {
     if (waypoints.length < 2) return;
 
     const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_KEY;
-    const updateType = routeUpdateTypeRef.current; // ← read from ref, not state
+    const updateType = routeUpdateTypeRef.current;
 
     const coordinates =
       updateType === "append"
@@ -264,8 +216,6 @@ const ManageMap = () => {
     }));
 
     if (updateType === "append") {
-      // Re-index the merged list: each fetched segment starts at 0, and the
-      // backend sorts by order_index, so duplicates would scramble the line.
       setCoord((prev) => {
         const merged =
           prev.length === 0 ? newSegment : [...prev, ...newSegment.slice(1)];
@@ -279,9 +229,6 @@ const ManageMap = () => {
   useEffect(() => {
     if (waypoints.length < 2) return;
 
-    // When editing, the first render already holds the saved route in `coord`.
-    // Skip that first draw, otherwise drawBusRoute appends a stray segment on
-    // top of the loaded line ("sky lines"). Later edits draw normally.
     if (isEdit && !initialLoadDone.current) {
       initialLoadDone.current = true;
       return;
@@ -372,7 +319,7 @@ const ManageMap = () => {
       const reorderedWaypoints = remainingWaypoints.map((waypoint) => ({
         ...waypoint,
         order_index:
-          waypoint.order_index > selectedWaypoint.order_index // if current waypoint higher the deleted one, subtract 1 from order
+          waypoint.order_index > selectedWaypoint.order_index
             ? waypoint.order_index - 1
             : waypoint.order_index,
       }));

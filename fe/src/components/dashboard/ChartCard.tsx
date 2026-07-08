@@ -17,15 +17,11 @@ import {
 type ChartCardProps = {
   title: string;
   description?: string;
-  // Kept so existing call sites compile; the export now snapshots the rendered
-  // chart instead of fetching this metric's data.
   metricKey?: AnalyticsMetricKey;
   children: ReactNode;
   className?: string;
 };
 
-// Resolve any CSS colour (incl. oklch, which getComputedStyle returns and jsPDF
-// can't parse) to concrete [r, g, b] by painting one pixel and reading it back.
 const resolveColor = (css: string): [number, number, number] => {
   const ctx = document.createElement("canvas").getContext("2d");
   if (!ctx) return [255, 255, 255];
@@ -56,24 +52,19 @@ const ChartCard = ({
 
     setIsDownloading(true);
     try {
-      // Load the (heavy) PDF libs only on demand so they stay out of the main
-      // dashboard bundle.
       const [{ toPng }, { default: jsPDF }] = await Promise.all([
         import("html-to-image"),
         import("jspdf"),
       ]);
 
       const cardStyle = getComputedStyle(cardNode);
-      const bg = cardStyle.backgroundColor; // raw (oklch ok) for the captures
+      const bg = cardStyle.backgroundColor;
       const cardRgb = resolveColor(bg);
       const pageRgb = resolveColor(
         getComputedStyle(document.body).backgroundColor,
       );
       const borderRgb = resolveColor(cardStyle.borderTopColor);
 
-      // Capture the real, on-screen title/description (so diacritics ă â î ș ț
-      // and colours render correctly) and the chart, each with the card's
-      // background painted in, then lay them out on a rounded panel.
       const capture = (node: HTMLElement) =>
         toPng(node, { pixelRatio: 2, cacheBust: true, backgroundColor: bg });
 
@@ -92,10 +83,10 @@ const ChartCard = ({
       const chartUrl = await capture(chartNode);
       const chartImg = await loadImg(chartUrl);
 
-      const margin = 28; // page padding around the card
-      const pad = 32; // inner padding of the card
+      const margin = 28;
+      const pad = 32;
       const radius = 20;
-      const gap = 16; // between header and chart
+      const gap = 16;
       const headerH = (headerImg.height / headerImg.width) * headerW;
       const chartH = (chartImg.height / chartImg.width) * chartW;
 
@@ -110,11 +101,9 @@ const ChartCard = ({
         format: [pageW, pageH],
       });
 
-      // Page background.
       pdf.setFillColor(pageRgb[0], pageRgb[1], pageRgb[2]);
       pdf.rect(0, 0, pageW, pageH, "F");
 
-      // Rounded card panel with a subtle border.
       pdf.setFillColor(cardRgb[0], cardRgb[1], cardRgb[2]);
       pdf.setDrawColor(borderRgb[0], borderRgb[1], borderRgb[2]);
       pdf.setLineWidth(1);

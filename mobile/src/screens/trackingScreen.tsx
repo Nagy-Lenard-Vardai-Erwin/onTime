@@ -31,7 +31,6 @@ export const TrackingScreen = ({credentials, onLogout}: Props) => {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [tracking, setTracking] = useState(false);
 
-  // Accuracy the user picked, and the one actually in use (may auto-fall-back).
   const [accuracyMode, setAccuracyMode] = useState<AccuracyMode>('high');
   const [activeMode, setActiveMode] = useState<AccuracyMode>('high');
 

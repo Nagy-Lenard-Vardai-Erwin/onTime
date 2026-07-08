@@ -2,7 +2,6 @@ from typing import Optional, List
 from pydantic import BaseModel
 from models.UserModel import UserResponse
 
-
 class StationData(BaseModel):
     id: int
     station_id: Optional[int] = None
@@ -15,7 +14,6 @@ class StationData(BaseModel):
     class Config:
         from_attributes = True
 
-
 class Station(BaseModel):
     stations: List[StationData]
     created_at: Optional[str] = None
@@ -24,16 +22,13 @@ class Station(BaseModel):
     class Config:
         from_attributes = True
 
-
 class StationCreate(BaseModel):
     name: str
     line_id: int
     lat: float
     long: float
-    # Auto-assigned by the backend when omitted.
     station_id: Optional[int] = None
     order_index: Optional[int] = None
-
 
 class StationUpdate(BaseModel):
     name: Optional[str] = None

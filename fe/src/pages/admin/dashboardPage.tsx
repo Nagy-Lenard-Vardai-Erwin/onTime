@@ -70,8 +70,6 @@ const DashboardPage = () => {
 
   const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
-  // The pie's slices are line names (not fixed dataKeys), so build a config
-  // keyed by each line name so the legend/tooltip can resolve their labels.
   const shareConfig = Object.fromEntries(
     metrics.route_activity_share.map((item) => [
       item.line_name,

@@ -1,9 +1,7 @@
 declare module 'react' {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   export type ReactNode = any;
 
   export namespace JSX {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     interface Element extends any {}
     interface IntrinsicElements {
       [elemName: string]: unknown;

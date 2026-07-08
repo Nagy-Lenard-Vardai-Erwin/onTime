@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 export type UserLocation = { lat: number; lon: number };
 
-/** Turn a GeolocationPositionError into an actionable message. */
 const describeGeolocationError = (err: GeolocationPositionError): string => {
   switch (err.code) {
     case err.PERMISSION_DENIED:
@@ -16,11 +15,6 @@ const describeGeolocationError = (err: GeolocationPositionError): string => {
   }
 };
 
-/**
- * Tracks the browser's geolocation (like the Google Maps "my location" dot).
- * Tracking is off until `enable()` / `toggle()` is called, then it follows the
- * user live via watchPosition.
- */
 const useUserLocation = () => {
   const [location, setLocation] = useState<UserLocation | null>(null);
   const [enabled, setEnabled] = useState(false);

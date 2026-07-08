@@ -16,9 +16,6 @@ const PageTitle = () => {
 
   const segments = location.pathname.split("/").filter(Boolean);
 
-  // Build breadcrumbs from the URL while dropping only the "admin" base (it
-  // duplicated "Dashboard"). Ids stay so the trail reads e.g.
-  // /admin/routes/9/edit -> Lines (clickable) > 9 (clickable) > Edit (current).
   const crumbs = segments
     .map((segment, index) => ({
       segment: decodeURIComponent(segment),
@@ -39,12 +36,9 @@ const PageTitle = () => {
     alt: "Back Button",
   };
 
-  // The "routes" section is the lines listing, so label it "Lines" in the trail.
   const segmentOverrides: Record<string, string> = { routes: "lines" };
 
   const label = (segment: string) => {
-    // Numeric segments are line ids (e.g. /admin/routes/27) — show the line's
-    // name instead of the raw id when we have it.
     if (/^\d+$/.test(segment)) {
       const line = lines?.find((l) => String(l.id) === segment);
       return line?.name ?? segment;

@@ -18,8 +18,6 @@ router = APIRouter(
     tags=["stations"],
 )
 
-
-# POST /station
 @router.post("", response_model=Station)
 async def create_station(
     data: StationCreate,
@@ -57,9 +55,6 @@ async def create_station(
     db.commit()
     db.refresh(new_station)
 
-    # Keep the line_stations junction in sync: a brand new station starts out
-    # attached to the line it was created on, so it shows up everywhere the
-    # many-to-many link is used (route view, admin "attached lines").
     max_ls_order = (
         db.query(func.max(LineStationDB.order_index))
         .filter(LineStationDB.line_id == data.line_id)
@@ -120,7 +115,6 @@ async def get_stations(
             raise StationNotFoundError()
         elif line_ids:
             raise LineNotFoundError()
-        # No filters: an empty network is a valid state, not an error.
         return {"stations": [], "created_at": None, "created_by": None}
 
     latest_station, latest_user =  max(
@@ -147,7 +141,6 @@ async def get_stations(
             "email": latest_user.email,
         } if latest_user else None,
     }
-
 
 @router.put("/{id}", response_model=Station)
 async def update_station(

@@ -39,7 +39,6 @@ interface MapComponentProps {
   walkingRoute?: [number, number][];
   onSelectStation?: (station: Station) => void;
   onDeselectStation?: () => void;
-  /** Id of the station currently picked as the walking target, if any. */
   selectedStationId?: number | string | null;
   highlightBusId?: number;
 }
@@ -131,7 +130,6 @@ const ViewMap = ({
     setCoord((prev) => [...prev, newMarker]);
   };
 
-  // Any click on the map itself (outside the markers/cards) closes the cards.
   const handleMapClick = (e: MapLayerMouseEvent) => {
     closeCards();
     addMarker(e);
@@ -340,8 +338,6 @@ const ViewMap = ({
             id="walking-route-line"
             type="line"
             paint={{
-              // Walking path in the bus icon's blue/teal so it reads as the
-              // "to your bus" path, distinct from the red bus routes.
               "line-color": "#00c2cb",
               "line-width": 5,
               "line-dasharray": [1, 1.5],
@@ -391,7 +387,6 @@ const ViewMap = ({
               id={layerId}
               type="line"
               paint={{
-                // All route lines are red.
                 "line-color": "red",
                 "line-width": 4,
               }}

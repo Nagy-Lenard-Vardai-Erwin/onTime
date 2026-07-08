@@ -67,18 +67,10 @@ from temporal_analysis import (
     speed_by_period
 )
 
-# ==================================================
-# Create exports folder
-# ==================================================
-
 os.makedirs(
     "exports",
     exist_ok=True
 )
-
-# ==================================================
-# Load and clean data
-# ==================================================
 
 print("\nLoading data...\n")
 
@@ -90,10 +82,6 @@ print(
     f"Dataset loaded successfully: "
     f"{len(df):,} records"
 )
-
-# ==================================================
-# Pre-compute analysis results
-# ==================================================
 
 routes_df = trips_per_route(df)
 
@@ -145,10 +133,6 @@ quietest_hour_df = quietest_hour(df)
 
 speed_period_df = speed_by_period(df)
 
-# ==================================================
-# Route Analysis
-# ==================================================
-
 print("\n========== ROUTE ANALYSIS ==========\n")
 
 print(routes_df)
@@ -164,10 +148,6 @@ print(busiest_route_df)
 print("\n========== LEAST USED ROUTE ==========\n")
 
 print(least_used_route_df)
-
-# ==================================================
-# Speed Analysis
-# ==================================================
 
 print("\n========== SPEED STATISTICS ==========\n")
 
@@ -192,10 +172,6 @@ print(fastest_bus_df)
 print("\n========== SLOWEST BUS ==========\n")
 
 print(slowest_bus_df)
-
-# ==================================================
-# Distance Analysis
-# ==================================================
 
 print("\n========== DISTANCE ANALYSIS ==========\n")
 
@@ -223,10 +199,6 @@ print(most_active_bus_df)
 print("\n========== TOP 10 ACTIVE BUSES ==========\n")
 
 print(top_active_buses_df)
-
-# ==================================================
-# Temporal Analysis
-# ==================================================
 
 print("\n========== ACTIVITY BY HOUR ==========\n")
 
@@ -268,13 +240,7 @@ print("\n========== SPEED BY PERIOD ==========\n")
 
 print(speed_period_df)
 
-# ==================================================
-# Generate Charts
-# ==================================================
-
 print("\nGenerating charts...\n")
-
-# Existing charts
 
 route_usage_chart(routes_df)
 
@@ -304,8 +270,6 @@ top_10_buses_chart(
 
 congestion_chart(df)
 
-# New temporal charts
-
 activity_by_hour_chart(
     activity_hour_df
 )
@@ -330,8 +294,6 @@ speed_by_period_chart(
     speed_period_df
 )
 
-# New bus charts
-
 top_active_buses_chart(
     top_active_buses_df
 )
@@ -339,8 +301,6 @@ top_active_buses_chart(
 speed_by_bus_chart(
     speed_bus_df
 )
-
-# Statistical charts
 
 speed_boxplot(df)
 
@@ -350,10 +310,6 @@ print(
     "\nCharts generated successfully "
     "inside exports/ folder."
 )
-
-# ==================================================
-# Summary
-# ==================================================
 
 print("\n========== SUMMARY ==========\n")
 

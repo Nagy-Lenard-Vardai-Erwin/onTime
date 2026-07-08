@@ -9,9 +9,6 @@ const analyticsApi = {
 export const getAnalyticsOverview = async () =>
   request<AnalyticsOverview>("get", analyticsApi.OVERVIEW, undefined, true);
 
-/**
- * Fetch a metric as CSV from the backend and trigger a browser download.
- */
 export const downloadMetricCsv = async (metric: string, filename: string) => {
   const response = await axiosInstance.get(analyticsApi.DOWNLOAD(metric), {
     withCredentials: true,

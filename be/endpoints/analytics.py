@@ -11,7 +11,6 @@ router = APIRouter(
     tags=["analytics"],
 )
 
-
 class MetricNotFoundError(AppError):
     def __init__(self):
         super().__init__(
@@ -19,11 +18,6 @@ class MetricNotFoundError(AppError):
             error_code="errors.analytics_metric_not_found",
             status_code=404,
         )
-
-
-# These run pandas over ~130k rows; declaring them as sync ``def`` lets FastAPI
-# execute them in a threadpool so the event loop is not blocked.
-
 
 @router.get("/overview")
 def get_overview(
@@ -33,12 +27,10 @@ def get_overview(
     """Summary numbers + every chart series for the admin dashboard."""
     return analytics_service.get_overview(force=refresh)
 
-
 @router.get("/metrics")
 def list_metrics(user=Depends(get_current_user)):
     """Available metrics with their human readable labels."""
     return analytics_service.METRICS
-
 
 @router.get("/download/{metric}")
 def download_metric(metric: str, user=Depends(get_current_user)):

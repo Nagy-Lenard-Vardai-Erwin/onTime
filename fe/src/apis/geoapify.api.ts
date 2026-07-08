@@ -3,18 +3,11 @@ import axios from "axios";
 export type LatLng = { lat: number; lon: number };
 
 export type WalkingRoute = {
-  /** Path as [lng, lat] pairs (GeoJSON order), ready for a MapLibre LineString. */
   coordinates: [number, number][];
-  /** Estimated walking time in seconds (null if unavailable). */
   durationSec: number | null;
-  /** Walking distance in metres (null if unavailable). */
   distanceM: number | null;
 };
 
-/**
- * Walking route between two points via Geoapify, including the estimated time
- * and distance so the UI can show "how long to walk to the station".
- */
 export const getWalkingRoute = async (
   from: LatLng,
   to: LatLng,
@@ -30,7 +23,6 @@ export const getWalkingRoute = async (
   const geometry = feature?.geometry;
   if (!geometry) return { coordinates: [], durationSec: null, distanceM: null };
 
-  // Geoapify returns LineString or MultiLineString; normalise to [lng,lat][].
   const coordinates: [number, number][] =
     geometry.type === "MultiLineString"
       ? geometry.coordinates.flat()

@@ -19,7 +19,6 @@ const Navbar = () => {
   const { enabled: locationEnabled, toggle: toggleLocation } =
     useUserLocationContext();
 
-  // The location toggle only makes sense on the map (home) page.
   const showLocation = pathname === "/";
 
   const logo = theme === "light" ? onTimeLight : onTimeDark;
@@ -37,7 +36,6 @@ const Navbar = () => {
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem("language");
-    // Older builds stored "1"/"2" ids here; treat anything not "en" as "ro".
     const language = savedLanguage === "en" ? "en" : "ro";
     i18n.changeLanguage(language);
     localStorage.setItem("language", language);

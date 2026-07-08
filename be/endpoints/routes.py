@@ -22,7 +22,6 @@ router = APIRouter(
     tags=["route"],
 )
 
-
 @router.get("")
 async def get_routes(
     line_ids: Optional[List[int]] = Query(default=None),
@@ -43,13 +42,11 @@ async def get_routes(
         .all()
     )
 
-    # transform data
     result = [
         {
             "id": line.id,
             "name": line.name,
 
-            # ROUTES
             "routes": [
                 {
                     "id": r.id,
@@ -59,7 +56,6 @@ async def get_routes(
                 }
                 for r in sorted(line.routes, key=lambda x: x.order_index)
             ],
-            # WAYPOINTS
             "waypoints": [
                 {
                     "id": r.id,
@@ -70,7 +66,6 @@ async def get_routes(
                 for r in sorted(line.waypoints, key=lambda x: x.order_index)
             ],
 
-            # STATIONS
             "stations": [
                 {
                     "id": ls.station.id,
@@ -86,10 +81,9 @@ async def get_routes(
     ]
 
     return {
-        "line_ids": line_ids,  # just for information
+        "line_ids": line_ids,
         "response": result
     }
-
 
 @router.post("/{line_id}", response_model=CreateRouteResponse)
 async def create_route(line_id: int, data: RouteCreatePayload, db: Session = Depends(get_db), user=Depends(get_current_user)):
@@ -120,8 +114,6 @@ async def create_route(line_id: int, data: RouteCreatePayload, db: Session = Dep
     ]
 
     try:
-        # Replace the line's route: editing posts the full set, so clear the
-        # existing rows first instead of appending duplicates.
         db.query(RouteDB).filter(RouteDB.line_id == line_id).delete()
         db.query(RouteWaypointDB).filter(
             RouteWaypointDB.line_id == line_id).delete()
@@ -135,22 +127,6 @@ async def create_route(line_id: int, data: RouteCreatePayload, db: Session = Dep
         raise
 
     return {"message": "Routes and waypoints created successfully", "line_id": line_id}
-
-# return {
-#     "routes": [{
-#         "id": new_route.id,
-#         "lat": new_route.lat,
-#         "long": new_route.long,
-#         "line_id": new_route.line_id,
-#         "order_index": new_route.order_index,
-#     }],
-#     "created_at": str(new_route.created_at),
-#     "created_by": {
-#         "id": user["id"],
-#         "email": user["email"],
-#     }
-# }
-
 
 @router.put("/{id}", response_model=Route)
 async def update_route(
@@ -192,7 +168,6 @@ async def update_route(
         } if user else None,
     }
 
-
 @router.delete("/{line_id}")
 async def delete_route_by_line(
     line_id: int,
@@ -204,7 +179,6 @@ async def delete_route_by_line(
 
     if deleted_count == 0:
         raise RouteNotFoundError()
-
 
     db.query(LineDB).filter(
             LineDB.id == line_id).update({"has_route": False})

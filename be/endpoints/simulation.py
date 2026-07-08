@@ -17,16 +17,12 @@ router = APIRouter(
     tags=["Simulation"]
 )
 
-# Track the running simulation so we never have two runs writing conflicting
-# positions for the same bus ids (which makes the live view jump back/forward).
 _sim_process: subprocess.Popen | None = None
-
 
 @router.post("/start")
 def start_simulation():
     global _sim_process
 
-    # Stop any simulation that is still running before starting a fresh one.
     if _sim_process is not None and _sim_process.poll() is None:
         _sim_process.terminate()
         try:
@@ -55,7 +51,6 @@ def start_simulation():
         "message": "Simulation started"
     }
 
-
 @router.post("/stop")
 def stop_simulation():
     global _sim_process
@@ -82,12 +77,6 @@ def get_live_buses(
 
     line_filter = "WHERE line_id = :line_id" if line_id else ""
 
-    # The freshness window is applied to each bus's *latest* row, so a bus
-    # that stopped reporting disappears instead of showing its last position.
-    # It is symmetric (now ± window) because the simulator writes a simulated
-    # clock that drifts ahead of real time: in live (filtered) mode those
-    # leftover rows must be hidden too. `time` is naive Europe/Bucharest,
-    # matching what /locations stores.
     freshness_filter = ""
     params: dict = {"line_id": line_id} if line_id else {}
     if max_age_seconds:
@@ -123,18 +112,8 @@ def get_live_buses(
         for row in result
     ]
 
-# --- Closest approaching bus ------------------------------------------------
-# A bus is "closest" by its forward distance ALONG the route to the station,
-# not by straight-line distance: a bus that just passed the station is meters
-# away but a whole loop from coming back.
-
-# Real writers (phone app, simulator) insert one row per bus every ~5 seconds,
-# so speed is estimated from the displacement between consecutive samples.
 _SAMPLE_INTERVAL_S = 5.0
-# A bus is considered moving with a known heading only after ~8 m of travel
-# across its recent samples; below that GPS jitter dominates.
 _MIN_HEADING_DISPLACEMENT_M = 8.0
-
 
 def _local_vector(a, b):
     """Flat-earth vector (meters east, meters north) from point a to b."""
@@ -142,7 +121,6 @@ def _local_vector(a, b):
     dx = (b[1] - a[1]) * 111320 * math.cos(ref)
     dy = (b[0] - a[0]) * 110540
     return dx, dy
-
 
 def _heading_vector(points):
     """Unit direction of travel from the oldest to the newest sample."""
@@ -152,7 +130,6 @@ def _heading_vector(points):
         return None
     return dx / norm, dy / norm
 
-
 def _route_direction(route, i):
     """Unit direction of the route around point i."""
     a = route[max(i - 1, 0)]
@@ -160,7 +137,6 @@ def _route_direction(route, i):
     dx, dy = _local_vector(a, b)
     norm = math.hypot(dx, dy) or 1.0
     return dx / norm, dy / norm
-
 
 def _candidate_clusters(route, point, slack_m=40, index_gap=5):
     """Indices of the route points nearest to `point`, one per pass.
@@ -184,7 +160,6 @@ def _candidate_clusters(route, point, slack_m=40, index_gap=5):
 
     return [min(c, key=lambda i: dists[i]) for c in clusters], dists
 
-
 def _project_bus(route, point, heading):
     """Snap a bus to the route leg whose direction matches its heading.
 
@@ -202,7 +177,6 @@ def _project_bus(route, point, heading):
         ),
     )
 
-
 def _assign_station_indices(route, stations):
     """Map every station of the line to a single route index.
 
@@ -219,7 +193,6 @@ def _assign_station_indices(route, stations):
         assigned[st.id] = idx
         prev = idx
     return assigned
-
 
 @router.get("/closest-bus")
 def get_closest_bus(
@@ -250,7 +223,6 @@ def get_closest_bus(
     if not any(s.id == station_id for s in station_rows):
         raise StationNotFoundError()
 
-    # Cumulative distance along the route, for forward-distance arithmetic.
     cum = [0.0]
     for a, b in zip(route, route[1:]):
         cum.append(cum[-1] + distance_m(a, b))
@@ -258,7 +230,6 @@ def get_closest_bus(
 
     target_idx = _assign_station_indices(route, station_rows)[station_id]
 
-    # Last 3 samples per bus: enough to derive the direction of travel.
     rows = db.execute(
         text(
             """
@@ -289,7 +260,7 @@ def get_closest_bus(
 
     best = None
     for samples in samples_by_bus.values():
-        samples.sort(key=lambda r: r.rn)  # rn=1 is the newest sample
+        samples.sort(key=lambda r: r.rn)
         newest = samples[0]
 
         if freshness_window and not (
@@ -297,15 +268,15 @@ def get_closest_bus(
         ):
             continue
 
-        points = [(s.lat, s.lon) for s in reversed(samples)]  # oldest -> newest
+        points = [(s.lat, s.lon) for s in reversed(samples)]
         heading = _heading_vector(points) if len(points) >= 2 else None
 
         bus_idx = _project_bus(route, points[-1], heading)
         forward_m = cum[target_idx] - cum[bus_idx]
         if forward_m < 0:
-            forward_m += total_length  # bus already passed: full loop around
+            forward_m += total_length
 
-        speed_mps = 6.0  # fallback ≈ city bus average incl. stops
+        speed_mps = 6.0
         if len(points) >= 2:
             step = distance_m(points[-2], points[-1]) / _SAMPLE_INTERVAL_S
             if step > 0.5:

@@ -4,11 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 
 const LIVE_MAX_AGE_SECONDS = 120;
 
-/**
- * Polls the closest bus *approaching* the given station along the route
- * (direction-aware, derived from the bus's last GPS samples). With
- * `onlyFresh`, buses silent for over two minutes are ignored.
- */
 const useClosestBus = (
   lineId?: number,
   stationId?: number,

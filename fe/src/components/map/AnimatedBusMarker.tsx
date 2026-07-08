@@ -3,11 +3,7 @@ import { Marker } from "@vis.gl/react-maplibre";
 import type { LiveBus } from "@/entities/liveBus";
 import movingBusIcon from "@/assets/moving_bus.svg";
 
-// Glide duration between two polled positions (matches the 5s refetch).
 const ANIM_MS = 5000;
-// If the next position is farther than this, jump instead of gliding. Avoids the
-// "fly across the map" when returning from a background tab (rAF/polling paused)
-// or when a bus restarts its route from the beginning.
 const SNAP_THRESHOLD_M = 200;
 
 type LatLon = { lat: number; lon: number };
@@ -24,10 +20,6 @@ type Props = {
   highlighted?: boolean;
 };
 
-/**
- * Bus marker that smoothly interpolates from its previous position to the latest
- * polled position, but snaps instantly when the jump is too large.
- */
 const AnimatedBusMarker = ({ bus, onClick, highlighted = false }: Props) => {
   const posRef = useRef<LatLon>({ lat: bus.lat, lon: bus.lon });
   const [pos, setPos] = useState(posRef.current);
@@ -38,7 +30,6 @@ const AnimatedBusMarker = ({ bus, onClick, highlighted = false }: Props) => {
     const to = { lat: bus.lat, lon: bus.lon };
     if (from.lat === to.lat && from.lon === to.lon) return;
 
-    // Large jump (returned from background, route restart) -> snap, no glide.
     if (metersBetween(from, to) > SNAP_THRESHOLD_M) {
       posRef.current = to;
       setPos(to);

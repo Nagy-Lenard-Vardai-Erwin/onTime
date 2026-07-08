@@ -7,7 +7,6 @@ const useDeleteLine = () => {
   return useMutation<unknown, Error, number | string>({
     mutationFn: (id) => deleteLine(id),
     onSuccess: () => {
-      // Deleting a line cascades to its routes and stations on the backend.
       queryClient.invalidateQueries({ queryKey: [queryKeys.LINES] });
       queryClient.invalidateQueries({ queryKey: [queryKeys.ROUTES] });
       queryClient.invalidateQueries({ queryKey: [queryKeys.STATIONS] });

@@ -27,7 +27,7 @@ function BusStation({
       color="red"
       draggable={draggable}
       onClick={(e) => {
-        if (draggable) return; // keep drag-editing intact in admin
+        if (draggable) return;
         e.originalEvent.stopPropagation();
         onClick?.(station);
       }}

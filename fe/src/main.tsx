@@ -14,9 +14,6 @@ import { Toaster } from "./components/shadcn/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient({
-  // Cache by default — static data (lines, routes, users…) stays until manually
-  // refreshed. Only the live/moving queries (live buses, closest bus, walking
-  // route, analytics) opt into refetchOnWindowFocus individually.
   defaultOptions: { queries: { refetchOnWindowFocus: false } },
 });
 

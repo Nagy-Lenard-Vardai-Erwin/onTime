@@ -3,8 +3,6 @@ import Geolocation from '@react-native-community/geolocation';
 
 export const requestLocationPermission = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') {
-    // iOS: trigger the "When In Use" authorization prompt. The actual fix
-    // (getCurrentPosition) will surface an error if the user denies it.
     Geolocation.requestAuthorization();
     return true;
   }

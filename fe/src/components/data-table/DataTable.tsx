@@ -15,9 +15,7 @@ import { Button } from "@/components/shadcn/button";
 type DataTableProps<TData> = {
   data: TData[];
   columns: ColumnDef<TData, unknown>[];
-  /** When set, the table paginates client-side with this many rows per page. */
   pageSize?: number;
-  /** When set, shows a search box that filters all columns client-side. */
   searchPlaceholder?: string;
 };
 

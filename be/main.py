@@ -6,20 +6,13 @@ import os
 
 from models.errors.Errors import AppError
 
-
 app = FastAPI()
 
-# Explicit allowlist of browser origins permitted to send credentialed requests.
-# Override in deployment via ALLOWED_ORIGINS (comma-separated), e.g.
-# ALLOWED_ORIGINS="http://localhost:5173,https://admin.example.com".
-# NOTE: a wildcard here together with allow_credentials=True would let any site
-# drive this API with a logged-in user's cookie, so keep it specific.
 origins = [
     o.strip()
     for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
     if o.strip()
 ]
-
 
 @app.exception_handler(AppError)
 async def app_error_handler(request: Request, exc: AppError):
@@ -52,7 +45,6 @@ app.include_router(simulation.router)
 app.include_router(users.router)
 app.include_router(analytics.router)
 app.include_router(buses.router)
-
 
 @app.on_event("startup")
 def warm_analytics_cache():

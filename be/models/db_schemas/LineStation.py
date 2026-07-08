@@ -6,7 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.db_schemas.Base import Base
 
-
 class LineStation(Base):
     __tablename__ = "line_stations"
 
@@ -35,7 +34,6 @@ class LineStation(Base):
         nullable=True
     )
 
-    # relationships
     line = relationship(
         "Line",
         back_populates="line_stations"

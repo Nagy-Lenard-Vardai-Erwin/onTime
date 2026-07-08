@@ -20,11 +20,9 @@ router = APIRouter(
     tags=["users"],
 )
 
-
 def _require_admin(user: dict):
     if user.get("roles") != "Admin":
         raise AdminRequiredError()
-
 
 def _serialize(user: UserDB) -> dict:
     return {
@@ -33,7 +31,6 @@ def _serialize(user: UserDB) -> dict:
         "roles": user.roles,
         "created_at": str(user.created_at) if user.created_at else None,
     }
-
 
 @router.get("", response_model=List[AdminUserResponse])
 async def get_users(
@@ -44,7 +41,6 @@ async def get_users(
 
     users = db.query(UserDB).order_by(UserDB.id).all()
     return [_serialize(user) for user in users]
-
 
 @router.put("/{user_id}", response_model=AdminUserResponse)
 async def update_user(
@@ -72,14 +68,12 @@ async def update_user(
 
     if data.password:
         user.password = hash_password(data.password)
-        # Invalidate the user's existing sessions after a password reset.
         user.token_version = (user.token_version or 0) + 1
 
     db.commit()
     db.refresh(user)
 
     return _serialize(user)
-
 
 @router.delete("/{user_id}")
 async def delete_user(

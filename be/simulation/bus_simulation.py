@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-# Romanian station names (ă, ț, ș) would crash print() on a non-UTF-8 console.
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
@@ -36,17 +35,10 @@ def passenger_probability(time):
     else:
         return 0.50
 
-
 db = SessionLocal()
 
-# Simulate every line that actually has a route drawn — no hard-coded ids, so
-# whatever lines an admin has created routes for get buses automatically.
 line_ids = [row[0] for row in db.query(Route.line_id).distinct().all()]
 
-# Any bus can run any route (any driver can drive any bus), so keep a global
-# pool and hand 5 buses to each route — preferring the line's own buses, then
-# topping up from the rest. Each bus is used on only one route so its bus_id
-# never appears on two lines at once.
 all_buses = db.query(Bus).all()
 used_bus_ids: set = set()
 
@@ -61,7 +53,6 @@ for line_id in line_ids:
         line_id
     )
 
-    # A route needs at least two points to move along.
     if len(waypoints) < 2:
         continue
 
@@ -102,7 +93,7 @@ for line_id in line_ids:
                     0.8,
                     1.2
                 ),
-                "time": datetime.now(), # datetime(2026,6,1,6,0,0),
+                "time": datetime.now(),
                 "position": (
                     waypoints[start_index].lat,
                     waypoints[start_index].long
@@ -111,7 +102,6 @@ for line_id in line_ids:
             }
         )
 
-# Run continuously until the /simulation/stop endpoint terminates this process.
 while True:
     for bus in buses:
         if bus['current_speed'] < 40:
@@ -129,11 +119,6 @@ while True:
             bus['current_speed'] * bus['traffic_factor']
         )
         
-        # Advance along the route by the distance the bus covers in this
-        # 5-second step (matching the 5s write cadence below), crossing as many
-        # of the dense (~40 m) waypoints as the current speed allows. Keeping it
-        # real-time means each map update moves the bus a smaller, smoother step
-        # instead of teleporting ~100 m.
         budget_m = (speed / 3.6) * 5
         arrived = False
 
@@ -146,7 +131,6 @@ while True:
             seg = distance_m(bus['position'], target)
 
             if seg > budget_m:
-                # Partial move toward the next waypoint; budget used up.
                 ratio = budget_m / seg
                 bus['position'] = (
                     bus['position'][0] + (target[0] - bus['position'][0]) * ratio,
@@ -154,7 +138,6 @@ while True:
                 )
                 break
 
-            # Reached the next waypoint; keep going with the remaining budget.
             bus['position'] = target
             budget_m -= seg
             bus['current_index'] = next_index
@@ -166,7 +149,6 @@ while True:
                     f"Bus {bus['bus_name']} completed "
                     f"{bus['completed_routes']} routes"
                 )
-                # Loop the route again; the simulator runs until it's stopped.
                 bus['current_index'] = 0
                 bus['position'] = (
                     bus['waypoints'][0].lat,
@@ -244,5 +226,4 @@ while True:
         )
 
     db.commit()
-    # Write each bus's position once every 5 real seconds, like the phone app.
     time.sleep(5)

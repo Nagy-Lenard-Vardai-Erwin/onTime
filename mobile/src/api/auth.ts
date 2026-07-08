@@ -34,7 +34,6 @@ export const loginDriver = async (
   if (response.status !== 200 || !bus || !token) {
     throw new Error('Login failed');
   }
-  // Authenticate every subsequent request (e.g. POST /locations).
   setAuthToken(token);
   return {bus, token};
 }
