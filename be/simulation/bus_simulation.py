@@ -60,11 +60,7 @@ for line_id in line_ids:
         b for b in all_buses
         if b.line_id == line_id and b.id not in used_bus_ids
     ]
-    others = [
-        b for b in all_buses
-        if b.line_id != line_id and b.id not in used_bus_ids
-    ]
-    chosen = (own + others)[:BUSES_PER_ROUTE]
+    chosen = own[:BUSES_PER_ROUTE]
     count = len(chosen)
     if count == 0:
         continue
@@ -74,8 +70,6 @@ for line_id in line_ids:
     for i, bus_record in enumerate(chosen):
 
         used_bus_ids.add(bus_record.id)
-
-        start_index = min((i * len(waypoints)) // count, len(waypoints) - 1)
 
         start_index = min((i * len(waypoints)) // count, len(waypoints) - 1)
 

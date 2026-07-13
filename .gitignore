@@ -33,6 +33,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # =========================
+# Prezentari / lucrare (nu fac parte din aplicatie)
+# =========================
+prezentari/
+
+# =========================
 # Editors / OS files
 # =========================
 .vscode/*
