@@ -18,10 +18,12 @@ router = APIRouter(
 )
 
 _sim_process: subprocess.Popen | None = None
+_sim_watermark_id: int | None = None
+
 
 @router.post("/start")
 def start_simulation():
-    global _sim_process
+    global _sim_process, _sim_watermark_id
 
     if _sim_process is not None and _sim_process.poll() is None:
         _sim_process.terminate()
@@ -29,6 +31,14 @@ def start_simulation():
             _sim_process.wait(timeout=5)
         except Exception:
             _sim_process.kill()
+
+    db = SessionLocal()
+    try:
+        _sim_watermark_id = db.execute(
+            text("SELECT COALESCE(MAX(id), 0) FROM bus_locations")
+        ).scalar()
+    finally:
+        db.close()
 
     simulation_path = (
         Path(__file__)
@@ -51,6 +61,7 @@ def start_simulation():
         "message": "Simulation started"
     }
 
+
 @router.post("/stop")
 def stop_simulation():
     global _sim_process
@@ -67,7 +78,8 @@ def stop_simulation():
     return {
         "message": "Simulation stopped"
     }
-    
+
+
 @router.get("/live")
 def get_live_buses(
     line_id: int | None = Query(default=None),
@@ -75,12 +87,25 @@ def get_live_buses(
 ):
     db = SessionLocal()
 
-    line_filter = "WHERE line_id = :line_id" if line_id else ""
+    params: dict = {}
+    conditions: list[str] = []
+
+    if line_id:
+        conditions.append("line_id = :line_id")
+        params["line_id"] = line_id
+
+    # Simulation view: the caller sends no max_age_seconds. Keep only rows
+    # written by the simulation that is running right now.
+    if max_age_seconds is None and _sim_watermark_id:
+        conditions.append("id > :watermark")
+        params["watermark"] = _sim_watermark_id
+
+    where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
     freshness_filter = ""
-    params: dict = {"line_id": line_id} if line_id else {}
     if max_age_seconds:
-        now = datetime.now(pytz.timezone("Europe/Bucharest")).replace(tzinfo=None)
+        now = datetime.now(pytz.timezone("Europe/Bucharest")
+                           ).replace(tzinfo=None)
         window = timedelta(seconds=max_age_seconds)
         freshness_filter = "WHERE latest.time BETWEEN :oldest AND :newest"
         params["oldest"] = now - window
@@ -97,7 +122,7 @@ def get_live_buses(
             vel,
             time
         FROM bus_locations
-        {line_filter}
+        {where_clause}
         ORDER BY
             bus_id,
             id DESC
@@ -112,8 +137,10 @@ def get_live_buses(
         for row in result
     ]
 
+
 _SAMPLE_INTERVAL_S = 5.0
 _MIN_HEADING_DISPLACEMENT_M = 8.0
+
 
 def _local_vector(a, b):
     """Flat-earth vector (meters east, meters north) from point a to b."""
@@ -121,6 +148,7 @@ def _local_vector(a, b):
     dx = (b[1] - a[1]) * 111320 * math.cos(ref)
     dy = (b[0] - a[0]) * 110540
     return dx, dy
+
 
 def _heading_vector(points):
     """Unit direction of travel from the oldest to the newest sample."""
@@ -130,6 +158,7 @@ def _heading_vector(points):
         return None
     return dx / norm, dy / norm
 
+
 def _route_direction(route, i):
     """Unit direction of the route around point i."""
     a = route[max(i - 1, 0)]
@@ -137,6 +166,7 @@ def _route_direction(route, i):
     dx, dy = _local_vector(a, b)
     norm = math.hypot(dx, dy) or 1.0
     return dx / norm, dy / norm
+
 
 def _candidate_clusters(route, point, slack_m=40, index_gap=5):
     """Indices of the route points nearest to `point`, one per pass.
@@ -160,6 +190,7 @@ def _candidate_clusters(route, point, slack_m=40, index_gap=5):
 
     return [min(c, key=lambda i: dists[i]) for c in clusters], dists
 
+
 def _project_bus(route, point, heading):
     """Snap a bus to the route leg whose direction matches its heading.
 
@@ -177,6 +208,7 @@ def _project_bus(route, point, heading):
         ),
     )
 
+
 def _assign_station_indices(route, stations):
     """Map every station of the line to a single route index.
 
@@ -193,6 +225,7 @@ def _assign_station_indices(route, stations):
         assigned[st.id] = idx
         prev = idx
     return assigned
+
 
 @router.get("/closest-bus")
 def get_closest_bus(
@@ -230,9 +263,15 @@ def get_closest_bus(
 
     target_idx = _assign_station_indices(route, station_rows)[station_id]
 
+    sample_params: dict = {"line_id": line_id}
+    watermark_condition = ""
+    if max_age_seconds is None and _sim_watermark_id:
+        watermark_condition = "AND id > :watermark"
+        sample_params["watermark"] = _sim_watermark_id
+
     rows = db.execute(
         text(
-            """
+            f"""
             SELECT bus_id, bus_name, lat, lon, time, rn FROM (
                 SELECT bus_id, bus_name, lat, lon, time,
                        ROW_NUMBER() OVER (
@@ -240,10 +279,11 @@ def get_closest_bus(
                        ) AS rn
                 FROM bus_locations
                 WHERE line_id = :line_id
+                {watermark_condition}
             ) t WHERE rn <= 3
             """
         ),
-        {"line_id": line_id},
+        sample_params,
     ).all()
 
     samples_by_bus: dict = {}
@@ -252,13 +292,16 @@ def get_closest_bus(
 
     freshness_window = None
     if max_age_seconds:
-        now = datetime.now(pytz.timezone("Europe/Bucharest")).replace(tzinfo=None)
+        now = datetime.now(pytz.timezone("Europe/Bucharest")
+                           ).replace(tzinfo=None)
         freshness_window = (
             now - timedelta(seconds=max_age_seconds),
             now + timedelta(seconds=max_age_seconds),
         )
 
     best = None
+    best_distance = float("inf")
+
     for samples in samples_by_bus.values():
         samples.sort(key=lambda r: r.rn)
         newest = samples[0]
@@ -282,7 +325,8 @@ def get_closest_bus(
             if step > 0.5:
                 speed_mps = min(max(step, 2.0), 20.0)
 
-        if best is None or forward_m < best["distance_m"]:
+        if forward_m < best_distance:
+            best_distance = forward_m
             best = {
                 "bus_id": newest.bus_id,
                 "bus_name": newest.bus_name,
