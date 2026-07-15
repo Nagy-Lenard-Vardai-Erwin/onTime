@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
-import { LocateFixed } from "lucide-react";
 import { useThemeContext } from "../contexts/ThemeContextProvider";
 import { useUserLocationContext } from "../contexts/userLocationContext";
 import { themedSvg } from "../utils/themedSvg";
@@ -11,6 +10,7 @@ import ENSvg from "@/assets/EN.svg";
 import ROSvg from "@/assets/RO.svg";
 import darkSvg from "@/assets/dark.svg";
 import lightSvg from "@/assets/light.svg";
+import crosshairSvg from "@/assets/crosshair.svg";
 
 const Navbar = () => {
   const { t, i18n } = useTranslation();
@@ -54,11 +54,11 @@ const Navbar = () => {
             onClick={toggleLocation}
             title={t("home.myLocation")}
             aria-pressed={locationEnabled}
-            className={`rounded-md p-1.5 transition-colors hover:bg-accent hover:cursor-pointer ${
-              locationEnabled ? "text-light-blue" : "text-foreground"
+            className={`rounded-md p-1.5 transition-colors hover:cursor-pointer ${
+              locationEnabled ? "bg-accent" : "hover:bg-accent"
             }`}
           >
-            <LocateFixed className="size-[30px]" strokeWidth={2} />
+            <img src={crosshairSvg} className={`size-[30px] ${themedSvgClass}`} />
           </button>
         )}
 

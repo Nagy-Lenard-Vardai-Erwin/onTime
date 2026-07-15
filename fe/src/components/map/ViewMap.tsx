@@ -76,7 +76,7 @@ const ViewMap = ({
     setSelectedStation(null);
   };
 
-  const test = async () => {
+  const snapLastSegmentToRoad = async () => {
     if (coord.length < 2) return;
 
     const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_KEY;
@@ -110,7 +110,7 @@ const ViewMap = ({
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      test();
+      snapLastSegmentToRoad();
     }, 400);
 
     return () => clearTimeout(timeout);
@@ -258,7 +258,7 @@ const ViewMap = ({
           latitude={selectedBus.lat}
           longitude={selectedBus.lon}
           anchor="bottom"
-          offset={28}
+          offset={18}
           closeButton={false}
           closeOnClick={false}
           onClose={() => setSelectedBus(null)}
@@ -276,7 +276,7 @@ const ViewMap = ({
           latitude={selectedStation.lat}
           longitude={selectedStation.long}
           anchor="bottom"
-          offset={36}
+          offset={22}
           closeButton={false}
           closeOnClick={false}
           onClose={() => setSelectedStation(null)}
@@ -289,7 +289,7 @@ const ViewMap = ({
               (String(selectedStationId) === String(selectedStation.id) ? (
                 <Button
                   size="sm"
-                  variant="outline"
+                  className="bg-background text-foreground border border-border hover:opacity-90"
                   onClick={() => {
                     onDeselectStation?.();
                     setSelectedStation(null);
@@ -300,6 +300,7 @@ const ViewMap = ({
               ) : (
                 <Button
                   size="sm"
+                  className="bg-background text-foreground border border-border hover:opacity-90"
                   onClick={() => {
                     onSelectStation(selectedStation);
                     setSelectedStation(null);

@@ -3,8 +3,27 @@
   color: var(--color-text);
 }
 
-/* The public navbar overlays the top of the map; push the zoom controls
-   below it (only on the home page). */
 .home-map .maplibregl-ctrl-top-right {
   top: 4.5rem;
+}
+
+.home-map .maplibregl-popup-content {
+  background: var(--foreground) !important;
+  color: var(--background) !important;
+}
+.home-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.home-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.home-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--foreground) !important;
+}
+.home-map .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.home-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.home-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--foreground) !important;
+}
+.home-map .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--foreground) !important;
+}
+.home-map .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--foreground) !important;
 }

@@ -7,7 +7,10 @@ import HomeControls, {
 import useRoute from "../hooks/admin/tanstack/useRoute";
 import useLiveBuses from "../hooks/tanstack/useLiveBuses";
 import useClosestBus from "../hooks/tanstack/useClosestBus";
-import { BusFront, Footprints, X } from "lucide-react";
+import { useThemeContext } from "../components/contexts/ThemeContextProvider";
+import { themedSvg } from "../components/utils/themedSvg";
+import busSvg from "@/assets/buses.svg";
+import footPrintsSvg from "@/assets/foot_prints.svg";
 import { toast } from "sonner";
 import { useUserLocationContext } from "../components/contexts/userLocationContext";
 import useWalkingRoute from "../hooks/tanstack/useWalkingRoute";
@@ -17,6 +20,8 @@ import "../css/HomePage.css";
 
 const HomePage = () => {
   const { t } = useTranslation();
+  const { theme } = useThemeContext();
+  const themedIcon = themedSvg(theme);
   const [selectedLineId, setSelectedLineId] = useState<number | undefined>();
   const [targetStation, setTargetStation] = useState<Station | null>(null);
   const [simulationRunning, setSimulationRunning] = useState(false);
@@ -115,10 +120,9 @@ const HomePage = () => {
           <div className="min-w-0 flex-1 space-y-1.5">
             <p className="text-2xl font-semibold">{targetStation.name}</p>
 
-            {/* Primary prediction: time until the next bus reaches this station */}
             {closestBus ? (
               <p className="flex items-center gap-2 text-xl">
-                <BusFront className="size-5 shrink-0 text-primary" />
+                <img src={busSvg} className={`size-5 shrink-0 ${themedIcon}`} />
                 <span>
                   <span className="font-semibold">
                     {t("home.busMinutes", {
@@ -134,15 +138,14 @@ const HomePage = () => {
               </p>
             ) : (
               <p className="flex items-center gap-2 text-xl text-muted-foreground">
-                <BusFront className="size-5 shrink-0" />
+                <img src={busSvg} className={`size-5 shrink-0 ${themedIcon}`} />
                 {t("home.noBusApproaching")}
               </p>
             )}
 
-            {/* Secondary: estimated time to walk to the station */}
             {walkingMinutes != null ? (
               <p className="flex items-center gap-2 text-xl">
-                <Footprints className="size-5 shrink-0 text-primary" />
+                <img src={footPrintsSvg} className={`size-5 shrink-0 ${themedIcon}`} />
                 <span>
                   <span className="font-semibold">
                     {t("home.walkMinutes", { minutes: walkingMinutes })}
@@ -161,7 +164,10 @@ const HomePage = () => {
             title={t("admin.cancel")}
             className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground hover:cursor-pointer"
           >
-            <X className="size-5" />
+            <span className="relative block size-5">
+              <span className="absolute top-1/2 left-1/2 h-0.5 w-4 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-full bg-current" />
+              <span className="absolute top-1/2 left-1/2 h-0.5 w-4 -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-current" />
+            </span>
           </button>
         </div>
       )}

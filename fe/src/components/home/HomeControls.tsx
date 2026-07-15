@@ -3,7 +3,10 @@ import useLines from "@/hooks/admin/tanstack/useLines";
 import useStartSimulation from "@/hooks/tanstack/useStartSimulation";
 import useStopSimulation from "@/hooks/tanstack/useStopSimulation";
 import { Button } from "@/components/shadcn/button";
-import { Radio, FlaskConical } from "lucide-react";
+import { useThemeContext } from "@/components/contexts/ThemeContextProvider";
+import { themedSvg } from "@/components/utils/themedSvg";
+import signalSvg from "@/assets/signal.svg";
+import flaskSvg from "@/assets/flask.svg";
 
 export type DataSource = "live" | "simulation";
 
@@ -29,6 +32,8 @@ const HomeControls = ({
   busCount,
 }: HomeControlsProps) => {
   const { t } = useTranslation();
+  const { theme } = useThemeContext();
+  const themedIcon = themedSvg(theme);
   const { data: lines } = useLines();
   const startSimulation = useStartSimulation();
   const stopSimulation = useStopSimulation();
@@ -47,10 +52,14 @@ const HomeControls = ({
   const sourceOptions: {
     value: DataSource;
     labelKey: string;
-    icon: typeof Radio;
+    icon: string;
   }[] = [
-    { value: "live", labelKey: "home.liveMode", icon: Radio },
-    { value: "simulation", labelKey: "home.simulationMode", icon: FlaskConical },
+    { value: "live", labelKey: "home.liveMode", icon: signalSvg },
+    {
+      value: "simulation",
+      labelKey: "home.simulationMode",
+      icon: flaskSvg,
+    },
   ];
 
   return (
@@ -77,7 +86,6 @@ const HomeControls = ({
         <label className="text-lg font-medium">{t("home.dataSource")}</label>
         <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
           {sourceOptions.map((option) => {
-            const Icon = option.icon;
             const isActive = dataSource === option.value;
 
             return (
@@ -90,7 +98,10 @@ const HomeControls = ({
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Icon className="size-5" />
+                <img
+                  src={option.icon}
+                  className={`size-5 ${themedIcon} ${isActive ? "" : "opacity-60"}`}
+                />
                 {t(option.labelKey)}
               </button>
             );
@@ -125,19 +136,26 @@ const HomeControls = ({
             : t("home.stopSimulation")}
         </Button>
       ) : (
-        <Button
-          className="text-lg"
-          onClick={() =>
-            startSimulation.mutate(undefined, {
-              onSuccess: () => onStarted?.(),
-            })
-          }
-          disabled={startSimulation.isPending}
-        >
-          {startSimulation.isPending
-            ? t("home.starting")
-            : t("home.startSimulation")}
-        </Button>
+        <div className="grid gap-2">
+          <Button
+            className="text-lg disabled:cursor-not-allowed"
+            onClick={() =>
+              startSimulation.mutate(undefined, {
+                onSuccess: () => onStarted?.(),
+              })
+            }
+            disabled={startSimulation.isPending || !selectedLineId}
+          >
+            {startSimulation.isPending
+              ? t("home.starting")
+              : t("home.startSimulation")}
+          </Button>
+          {!selectedLineId && (
+            <p className="text-sm text-muted-foreground">
+              {t("home.selectLineFirst")}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

@@ -1,7 +1,10 @@
 from fastapi import APIRouter
 import math
+import os
+import signal
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from db import SessionLocal
@@ -20,10 +23,11 @@ router = APIRouter(
 _sim_process: subprocess.Popen | None = None
 _sim_watermark_id: int | None = None
 
+_PID_FILE = Path(tempfile.gettempdir()) / "ontime_simulation.pid"
 
-@router.post("/start")
-def start_simulation():
-    global _sim_process, _sim_watermark_id
+
+def _terminate_simulation():
+    global _sim_process
 
     if _sim_process is not None and _sim_process.poll() is None:
         _sim_process.terminate()
@@ -31,6 +35,25 @@ def start_simulation():
             _sim_process.wait(timeout=5)
         except Exception:
             _sim_process.kill()
+    _sim_process = None
+
+    try:
+        if _PID_FILE.exists():
+            old_pid = int(_PID_FILE.read_text().strip())
+            try:
+                os.kill(old_pid, signal.SIGTERM)
+            except OSError:
+                pass
+            _PID_FILE.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+@router.post("/start")
+def start_simulation():
+    global _sim_process, _sim_watermark_id
+
+    _terminate_simulation()
 
     db = SessionLocal()
     try:
@@ -57,6 +80,11 @@ def start_simulation():
         stderr=subprocess.DEVNULL,
     )
 
+    try:
+        _PID_FILE.write_text(str(_sim_process.pid))
+    except Exception:
+        pass
+
     return {
         "message": "Simulation started"
     }
@@ -64,16 +92,7 @@ def start_simulation():
 
 @router.post("/stop")
 def stop_simulation():
-    global _sim_process
-
-    if _sim_process is not None and _sim_process.poll() is None:
-        _sim_process.terminate()
-        try:
-            _sim_process.wait(timeout=5)
-        except Exception:
-            _sim_process.kill()
-
-    _sim_process = None
+    _terminate_simulation()
 
     return {
         "message": "Simulation stopped"
@@ -94,8 +113,6 @@ def get_live_buses(
         conditions.append("line_id = :line_id")
         params["line_id"] = line_id
 
-    # Simulation view: the caller sends no max_age_seconds. Keep only rows
-    # written by the simulation that is running right now.
     if max_age_seconds is None and _sim_watermark_id:
         conditions.append("id > :watermark")
         params["watermark"] = _sim_watermark_id
@@ -143,7 +160,6 @@ _MIN_HEADING_DISPLACEMENT_M = 8.0
 
 
 def _local_vector(a, b):
-    """Flat-earth vector (meters east, meters north) from point a to b."""
     ref = math.radians(a[0])
     dx = (b[1] - a[1]) * 111320 * math.cos(ref)
     dy = (b[0] - a[0]) * 110540
@@ -151,7 +167,6 @@ def _local_vector(a, b):
 
 
 def _heading_vector(points):
-    """Unit direction of travel from the oldest to the newest sample."""
     dx, dy = _local_vector(points[0], points[-1])
     norm = math.hypot(dx, dy)
     if norm < _MIN_HEADING_DISPLACEMENT_M:
@@ -160,7 +175,6 @@ def _heading_vector(points):
 
 
 def _route_direction(route, i):
-    """Unit direction of the route around point i."""
     a = route[max(i - 1, 0)]
     b = route[min(i + 1, len(route) - 1)]
     dx, dy = _local_vector(a, b)
@@ -169,11 +183,6 @@ def _route_direction(route, i):
 
 
 def _candidate_clusters(route, point, slack_m=40, index_gap=5):
-    """Indices of the route points nearest to `point`, one per pass.
-
-    An out-and-back route passes the same street twice, so the near-minimum
-    distances form several clusters of consecutive indices (one per leg).
-    Returns one representative index per cluster plus all distances."""
     dists = [distance_m(point, rp) for rp in route]
     d_min = min(dists)
     candidates = [i for i, d in enumerate(dists) if d <= d_min + slack_m]
@@ -192,11 +201,6 @@ def _candidate_clusters(route, point, slack_m=40, index_gap=5):
 
 
 def _project_bus(route, point, heading):
-    """Snap a bus to the route leg whose direction matches its heading.
-
-    This is what tells apart the two sides of the road on an out-and-back
-    route. Without a usable heading (bus standing still) fall back to the
-    nearest point."""
     reps, dists = _candidate_clusters(route, point)
     if heading is None or len(reps) == 1:
         return min(reps, key=lambda i: dists[i])
@@ -210,11 +214,6 @@ def _project_bus(route, point, heading):
 
 
 def _assign_station_indices(route, stations):
-    """Map every station of the line to a single route index.
-
-    Stations are walked in order_index order and each must land further along
-    the route than the previous one, which picks the correct leg for stations
-    sitting between the two directions of travel."""
     assigned = {}
     prev = -1
     for st in stations:
