@@ -10,7 +10,6 @@ except Exception:
 import time
 from datetime import datetime, timedelta
 from db import SessionLocal
-from simulation.movement import move_toward
 from simulation.geo import distance_m
 from models.db_schemas.BusLocation import BusLocation
 import random
@@ -18,6 +17,28 @@ from simulation.route_loader import load_route, load_stations
 from simulation.station_logic import is_near_station
 from models.db_schemas.Bus import Bus
 from models.db_schemas.Route import Route
+
+
+STEP_SECONDS = 5
+LOOP_INTERVAL_SECONDS = 5
+
+BUSES_PER_ROUTE = 5
+
+INITIAL_SPEED_KMH = 25
+CRUISE_SPEED_KMH = 40
+ACCEL_RANGE_KMH = (3, 6)
+CRUISE_JITTER_KMH = (-2, 2)
+
+TRAFFIC_FACTOR_RANGE = (0.8, 1.2)
+TRAFFIC_CHANGE_PROB = 0.05
+
+RED_LIGHT_PROB = 0.05
+RED_LIGHT_DECEL_KMH = (5, 10)
+RED_LIGHT_STOP_SPEED_KMH = 5
+RED_LIGHT_WAIT_SECONDS = (15, 60)
+
+STATION_WAIT_SECONDS = (5, 15)
+
 
 def passenger_probability(time):
 
@@ -41,8 +62,6 @@ line_ids = [row[0] for row in db.query(Route.line_id).distinct().all()]
 
 all_buses = db.query(Bus).all()
 used_bus_ids: set = set()
-
-BUSES_PER_ROUTE = 5
 
 buses = []
 
@@ -81,12 +100,9 @@ for line_id in line_ids:
                 "waypoints": waypoints,
                 "stations": stations,
                 "current_index": start_index,
-                "current_speed": 25,
+                "current_speed": INITIAL_SPEED_KMH,
                 "visited_stations": set(),
-                "traffic_factor": random.uniform(
-                    0.8,
-                    1.2
-                ),
+                "traffic_factor": random.uniform(*TRAFFIC_FACTOR_RANGE),
                 "time": datetime.now(),
                 "position": (
                     waypoints[start_index].lat,
@@ -98,22 +114,19 @@ for line_id in line_ids:
 
 while True:
     for bus in buses:
-        if bus['current_speed'] < 40:
-            bus['current_speed'] += random.uniform(3,6)
+        if bus['current_speed'] < CRUISE_SPEED_KMH:
+            bus['current_speed'] += random.uniform(*ACCEL_RANGE_KMH)
         else:
-            bus['current_speed'] += random.uniform(-2,2)
-                
-        if random.random() < 0.05:
-            bus['traffic_factor'] = random.uniform(
-                0.8,
-                1.2
-            )
+            bus['current_speed'] += random.uniform(*CRUISE_JITTER_KMH)
+
+        if random.random() < TRAFFIC_CHANGE_PROB:
+            bus['traffic_factor'] = random.uniform(*TRAFFIC_FACTOR_RANGE)
 
         speed = (
             bus['current_speed'] * bus['traffic_factor']
         )
-        
-        budget_m = (speed / 3.6) * 5
+
+        budget_m = (speed / 3.6) * STEP_SECONDS
         arrived = False
 
         while budget_m > 0:
@@ -149,18 +162,18 @@ while True:
                     bus['waypoints'][0].long
                 )
                 bus['visited_stations'].clear()
-                bus['traffic_factor'] = random.uniform(0.8, 1.2)
+                bus['traffic_factor'] = random.uniform(*TRAFFIC_FACTOR_RANGE)
                 break
 
-        if random.random() < 0.05:
+        if random.random() < RED_LIGHT_PROB:
             print("Approaching red light...")
-            bus['current_speed'] = max(bus['current_speed'] - random.uniform(5,10),0)
-            
-            if bus['current_speed'] < 5:
-                red_light_time = random.randint(15,60)
+            bus['current_speed'] = max(bus['current_speed'] - random.uniform(*RED_LIGHT_DECEL_KMH), 0)
+
+            if bus['current_speed'] < RED_LIGHT_STOP_SPEED_KMH:
+                red_light_time = random.randint(*RED_LIGHT_WAIT_SECONDS)
                 print(f"Red light. Waiting {red_light_time} seconds...")
                 bus['time'] += timedelta(seconds=red_light_time)
-        
+
         location = BusLocation(
             bus_id=bus['bus_id'],
             bus_name=bus['bus_name'],
@@ -180,13 +193,12 @@ while True:
             f"Speed: {round(speed,1)} km/h | "
             f"Arrived: {arrived}"
         )
-        
+
         for station in bus['stations']:
 
             if station.station_id in bus['visited_stations']:
                 continue
-            
-            
+
             if is_near_station(
                 bus['position'],
                 station
@@ -196,7 +208,7 @@ while True:
                     "Station ID:",
                     station.id
                 )
-            
+
                 bus['visited_stations'].add(
                     station.station_id
                 )
@@ -204,20 +216,18 @@ while True:
                 has_passenger = (
                     random.random() < passenger_probability(bus['time'])
                 )
-                
+
                 if has_passenger:
                     bus['current_speed'] = 0
-                    wait_time = random.randint(5,15)
+                    wait_time = random.randint(*STATION_WAIT_SECONDS)
                     print(f"Station reached: {station.name}")
                     print(f"Waiting {wait_time} seconds...")
                     bus['time'] += timedelta(seconds=wait_time)
-                    
+
                 else:
                     print(f"Station skipped: {station.name}")
 
-        bus['time'] += timedelta(
-            seconds=5
-        )
+        bus['time'] += timedelta(seconds=STEP_SECONDS)
 
     db.commit()
-    time.sleep(5)
+    time.sleep(LOOP_INTERVAL_SECONDS)
