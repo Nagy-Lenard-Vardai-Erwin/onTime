@@ -252,16 +252,11 @@ th {
   }
 }
 
-/* Theme-aware MapLibre info-card popups (bus / station).
-   MapLibre ships its own `.maplibregl-popup-content{background:#fff}` rule with
-   the same specificity that loads after this file, so it wins the tie and the
-   card is always white. `!important` pins our themed colors over the vendor
-   stylesheet so the card inverts with light/dark mode. */
 .maplibregl-popup-content {
   background: var(--popover) !important;
   color: var(--popover-foreground) !important;
   border-radius: 0.625rem;
-  padding: 12px 14px;
+  padding: 2rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
@@ -279,4 +274,8 @@ th {
 }
 .maplibregl-popup-anchor-right .maplibregl-popup-tip {
   border-left-color: var(--popover) !important;
+}
+
+.maplibregl-popup-tip {
+  color: var(--color-light-blue) !important;
 }

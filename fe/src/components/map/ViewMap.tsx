@@ -237,6 +237,7 @@ const ViewMap = ({
           <BusStation
             station={station}
             key={station.id}
+            isSelected={String(selectedStationId) === String(station.id)}
             onClick={(s) => {
               setSelectedBus(null);
               setSelectedStation(s);
@@ -280,9 +281,10 @@ const ViewMap = ({
           closeButton={false}
           closeOnClick={false}
           onClose={() => setSelectedStation(null)}
+          style={{ padding: "2px" }}
         >
           <div className="flex flex-col items-center gap-2 text-center">
-            <span className="text-base font-semibold">
+            <span className="text-xl text-semibold">
               {selectedStation.name}
             </span>
             {onSelectStation &&

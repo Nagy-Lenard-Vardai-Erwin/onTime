@@ -12,6 +12,7 @@ type BusStationProps = {
   onDragEnd?: (station: Station, { lat, lng }: LatLng) => void;
   draggable?: boolean;
   onClick?: (station: Station) => void;
+  isSelected?: boolean;
 };
 
 function BusStation({
@@ -19,6 +20,7 @@ function BusStation({
   onDragEnd,
   draggable = false,
   onClick,
+  isSelected = false,
 }: BusStationProps) {
   return (
     <Marker
@@ -36,11 +38,16 @@ function BusStation({
         const { lat, lng } = e.lngLat;
         onDragEnd?.(station, { lat, lng });
       }}
+      style={{
+        border: isSelected ? "1.5px dashed #00c2cb" : "none",
+        borderRadius: "50%",
+        padding: `2px`,
+      }}
     >
       <img
         src={BusIcon}
         alt={station.name}
-        className="size-10 shrink-0 cursor-pointer group-data-[collapsible=icon]:justify-center"
+        className="size-8 shrink-0 cursor-pointer group-data-[collapsible=icon]:justify-center"
       />
     </Marker>
   );
