@@ -89,7 +89,7 @@ const HomePage = () => {
     meters < 1000 ? `${meters} m` : `${(meters / 1000).toFixed(1)} km`;
 
   return (
-    <div className="home-map relative h-screen">
+    <div className="home-map relative h-dvh">
       <div className="absolute inset-0 z-0">
         <ViewMap
           mode="view"
